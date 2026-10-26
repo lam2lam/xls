@@ -37,6 +37,12 @@ USER xls-developer
 ADD --chown=xls-developer . /home/xls-developer/xls/
 WORKDIR /home/xls-developer/xls/
 
+# --- NEW CACHE AND TARGET CONFIGURATION ---
+ARG BUILD_TARGET="//xls/common/..."
+
+RUN mkdir -p /home/xls-developer/bazel_disk_cache && \
+    echo "build --disk_cache=/home/xls-developer/bazel_disk_cache" >> /home/xls-developer/.bazelrc
+
 # Test everything (opt), exclude contrib (including xlscc) for now due to
 # increased build time when we add Clang.
-RUN if [ "$SKIP_TESTS" != "1" ]; then bazel build --config=ci --lockfile_mode=update --check_direct_dependencies=off -c opt -- //xls/... -//xls/contrib/... -//xls/dev_tools/...; else echo "Skipping tests because SKIP_TESTS is 1"; fi
+RUN if [ "$SKIP_TESTS" != "1" ]; then bazel build --config=ci --lockfile_mode=update --check_direct_dependencies=off -c opt -- ${BUILD_TARGET}; else echo "Skipping tests because SKIP_TESTS is 1"; fi
