@@ -37,9 +37,6 @@ USER xls-developer
 ADD --chown=xls-developer . /home/xls-developer/xls/
 WORKDIR /home/xls-developer/xls/
 
-RUN find . -type f \( -name "MODULE.bazel" -o -name "WORKSPACE" -o -name "*.bzl" -o -name "*.lock" \) -exec sed -i \
-    's|sha256-7SEVSm6uJ56ZBFyPoKeuLh6cpXLTl17x8iqBGomouLA=|sha256-Pj8AVITB12EZCg7lD3wYZpuHgcexydYPQsOUh77CWqg=|g' {} +
-
 # Test everything (opt), exclude contrib (including xlscc) for now due to
 # increased build time when we add Clang.
 RUN if [ "$SKIP_TESTS" != "1" ]; then bazel fetch --config=ci -c opt --test_summary=terse --test_verbose_timeout_warnings -- //xls/... -//xls/contrib/... -//xls/dev_tools/...; else echo "Skipping tests because SKIP_TESTS is 1"; fi
