@@ -1,0 +1,48 @@
+name: Nightly XLS Container Build
+
+on:
+  workflow_dispatch: # Allows manual verification triggers
+
+jobs:
+  nightly-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 1. Restore your cached data using the same lookup keys as the seeding workflow
+      - name: Restore Bazel Cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .bazel_disk_cache
+          key: bazel-split-cache-${{ runner.os }}- # Matches the base prefix
+          restore-keys: |
+            bazel-split-cache-${{ runner.os }}-
+
+      # 2. Compile everything natively using the optimized cache repository
+      - name: Build Production XLS Image
+        run: |
+          mkdir -p .bazel_disk_cache
+          
+          # Build the container. We specify the full XLS target block here.
+          docker build . \
+            -f Dockerfile-ubuntu-22.04 \
+            --build-arg BUILD_TARGET="//xls/... -//xls/contrib/... -//xls/dev_tools/..." \
+            -t lam2lam-xls:nightly
+
+      # 3. Optional: Extract any new cache entries produced by the nightly run
+      - name: Extract New Cache Items
+        if: success()
+        run: |
+          id=$(docker create lam2lam-xls:nightly)
+          docker cp $id:/home/xls-developer/bazel_disk_cache/. .bazel_disk_cache/
+          docker rm -v $id
+
+      # 4. Save any updated cache modifications back to the GitHub server pool
+      - name: Save Updated Bazel Cache
+        uses: actions/cache/save@v4
+        if: success()
+        with:
+          path: .bazel_disk_cache
+          key: bazel-split-cache-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempts }}
