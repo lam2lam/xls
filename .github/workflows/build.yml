@@ -1,0 +1,32 @@
+name: Build Docker Image
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: actions/setup-buildx-action@v3
+
+    - name: Build Docker Image
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: ./Dockerfile-ubuntu-22.04  # 请替换为你实际的 Dockerfile 文件名
+        tags: xls-builder:latest
+        outputs: type=docker,dest=/tmp/xls-builder.tar
+
+    # 可选：如果你想把编译好的镜像保存下来作为 GitHub Artifacts 下载回本地
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: xls-docker-image
+        path: /tmp/xls-builder.tar
