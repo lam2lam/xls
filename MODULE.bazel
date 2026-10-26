@@ -328,11 +328,12 @@ single_version_override(
 
 archive_override(
     module_name = "sv-lang",
-    url = "https://github.com/MikePopoloski/slang/archive/f04e81565793c768b747a8fd058f3e7aeceee1b5.tar.gz",
+    urls = ["https://github.com/MikePopoloski/slang/archive/f04e81565793c768b747a8fd058f3e7aeceee1b5.tar.gz"],
     integrity = "sha256-Pj8AVITB12EZCg7lD3wYZpuHgcexydYPQsOUh77CWqg=",
     strip_prefix = "slang-f04e81565793c768b747a8fd058f3e7aeceee1b5",
     patch_cmds = [
         "echo \"\" > MODULE.bazle",
-        "echo \"module(name = \\\"sv-lang\\\", version = \\\"0.0.0\\\")\" >> MODULE.bazel"
+        "echo \"module(name = \\\"sv-lang\\\", version = \\\"0.0.0\\\")\" >> MODULE.bazel",
+        "touch BUILD"
     ],
 )
