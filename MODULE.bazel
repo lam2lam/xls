@@ -325,3 +325,12 @@ single_version_override(
     module_name = "gawk",
     version = "5.4.0.bcr.2",
 )
+
+http_archive_override(
+    module_name = "sv-lang",
+    urls = [
+        "https://github.com/slang/archive/f04e81565793c768b747a8fd058f3e7aeceee1b5.tar.gz",
+        "https://github.com/MikePopoloski/slang/archive/f04e81565793c768b747a8fd058f3e7aeceee1b5.tar.gz"
+    ],
+    integrity = "sha256-Pj8AVITB12EZCg7lD3wYZpuHgcexydYPQsOUh77CWqg=",
+)
