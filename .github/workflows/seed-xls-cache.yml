@@ -1,0 +1,72 @@
+name: Seed XLS Cache (Split-Phase)
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: 'Select the compilation phase to execute'
+        required: true
+        default: '1_common'
+        type: choice
+        options:
+          - '1_common'
+          - '2_ir_and_dslx'
+          - '3_jit_and_passes'
+          - '4_everything'
+
+jobs:
+  incremental-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 1. Map target string patterns to the user's selected phase choice
+      - name: Set Target Variables
+        id: targets
+        run: |
+          if [ "${{ github.event.inputs.phase }}" = "1_common" ]; then
+            echo "target=//xls/common/..." >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.inputs.phase }}" = "2_ir_and_dslx" ]; then
+            echo "target=//xls/ir/... //xls/dslx/..." >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.inputs.phase }}" = "3_jit_and_passes" ]; then
+            echo "target=//xls/jit/... //xls/passes/... //xls/scheduling/..." >> $GITHUB_OUTPUT
+          else
+            echo "target=//xls/... -//xls/contrib/... -//xls/dev_tools/..." >> $GITHUB_OUTPUT
+          fi
+
+      # 2. Pull down existing cache fragments from prior phases
+      - name: Restore Bazel Cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .bazel_disk_cache
+          key: bazel-split-cache-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            bazel-split-cache-${{ runner.os }}-
+
+      # 3. Build the Docker container using our local extracted cache folder folder
+      - name: Compile Selected Phase
+        run: |
+          mkdir -p .bazel_disk_cache
+          
+          # Spin up the image build, mounting the cache folder inside the container
+          docker build . \
+            -f Dockerfile-ubuntu-22.04 \
+            --build-arg BUILD_TARGET="${{ steps.targets.outputs.target }}" \
+            -t xls-phase-builder:latest
+
+      # 4. Extract the newly produced cache artifacts out of the container so GitHub can store them
+      - name: Extract Cache Files from Container
+        run: |
+          # Spin up a temporary dead container layout to allow copying files out
+          id=$(docker create xls-phase-builder:latest)
+          docker cp $id:/home/xls-developer/bazel_disk_cache/. .bazel_disk_cache/
+          docker rm -v $id
+
+      # 5. Overwrite the persistent GitHub Actions cache state with the newly compiled files
+      - name: Save Updated Bazel Cache
+        uses: actions/cache/save@v4
+        with:
+          path: .bazel_disk_cache
+          key: bazel-split-cache-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempts }}
