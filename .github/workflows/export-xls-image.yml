@@ -1,0 +1,34 @@
+name: Export XLS Container
+
+on:
+  workflow_dispatch: # Allows you to trigger this manually from the Actions tab
+
+jobs:
+  download-and-export:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Pull XLS dev container from GCR
+        run: |
+          echo "Pulling the latest XLS development image..."
+          docker pull gcr.io/xls-releases/xls-dev:latest
+
+      - name: Save container image to raw tarball
+        run: |
+          echo "Saving image to raw tar archive..."
+          docker save gcr.io/xls-releases/xls-dev:latest -o xls-dev-latest.tar
+
+      - name: Compress tarball using gzip
+        run: |
+          echo "Compressing tarball..."
+          gzip -v xls-dev-latest.tar
+
+      - name: Upload compressed archive as a GitHub Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: xls-dev-container-tarball
+          path: xls-dev-latest.tar.gz
+          retention-days: 7 # Keeps the file available for download for 7 days
