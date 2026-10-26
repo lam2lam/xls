@@ -332,21 +332,23 @@ archive_override(
     integrity = "sha256-Pj8AVITB12EZCg7lD3wYZpuHgcexydYPQsOUh77CWqg=",
     strip_prefix = "slang-f04e81565793c768b747a8fd058f3e7aeceee1b5",
     patch_cmds = [
+        # 1. Clean and initialize MODULE.bazel
         "echo \"\" > MODULE.bazel",
         "echo \"module(name = \\\"sv-lang\\\", version = \\\"0.0.0\\\")\" >> MODULE.bazel",
+        
+        # 2. Build the main target directly in the root folder
         "echo \"package(default_visibility = [\\\"//visibility:public\\\"])\" > BUILD",
-        "echo \"alias(name = \\\"libsvlang\\\", actual = \\\"//source:slang\\\")\" >> BUILD",
-        "echo \"package(default_visibility = [\\\"//visibility:public\\\"])\" > source/BUILD",
-        "echo \"cc_library(\" >> source/BUILD",
-        "echo \"    name = \\\"slang\\\",\" >> source/BUILD",
-        # Automatically glob all C++ source files found inside source/
-        "echo \"    srcs = glob([\\\"**/*.cpp\\\"], exclude = [\\\"main.cpp\\\"]),\" >> source/BUILD",
-        # Automatically glob all matching header configurations 
-        "echo \"    hdrs = glob([\\\"**/*.h\\\", \\\"**/*.hpp\\\"]),\" >> source/BUILD",
-        # Tell Bazel to treat the 'source' root directory as an include path
-        "echo \"    includes = [\\\".\\\"],\" >> source/BUILD",
-        # Slang requires C++20 features to compile
-        "echo \"    copts = [\\\"-std=c++20\\\"],\" >> source/BUILD",
-        "echo \")\" >> source/BUILD",
+        "echo \"alias(name = \\\"libsvlang\\\", actual = \\\":slang\\\")\" >> BUILD",
+        
+        "echo \"cc_library(\" >> BUILD",
+        "echo \"  name = \\\"slang\\\",\" >> BUILD",
+        # Grab source files out of the implementation directory
+        "echo \"  srcs = glob([\\\"source/**/*.cpp\\\"], exclude = [\\\"source/main.cpp\\\"]),\" >> BUILD",
+        # Grab internal headers AND the public interface headers
+        "echo \"  hdrs = glob([\\\"include/**/*.h\\\", \\\"include/**/*.hpp\\\", \\\"source/**/*.h\\\", \\\"source/**/*.hpp\\\"]),\" >> BUILD",
+        # Tell Bazel to make the include/ directory available as an include root
+        "echo \"  includes = [\\\"include\\\", \\\"source\\\"],\" >> BUILD",
+        "echo \"  copts = [\\\"-std=c++20\\\"],\" >> BUILD",
+        "echo \")\" >> BUILD",
     ],
 )
