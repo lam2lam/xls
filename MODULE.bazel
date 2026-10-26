@@ -325,9 +325,3 @@ single_version_override(
     module_name = "gawk",
     version = "5.4.0.bcr.2",
 )
-
-archive_override(
-    module_name = "sv-lang",
-    remote = "https://github.com/MikePopoloski/slang.git",
-    commit = "f04e81565793c768b747a8fd058f3e7aeceee1b5",
-)
