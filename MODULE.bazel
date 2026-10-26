@@ -332,8 +332,9 @@ archive_override(
     integrity = "sha256-Pj8AVITB12EZCg7lD3wYZpuHgcexydYPQsOUh77CWqg=",
     strip_prefix = "slang-f04e81565793c768b747a8fd058f3e7aeceee1b5",
     patch_cmds = [
-        "echo \"\" > MODULE.bazle",
+        "echo \"\" > MODULE.bazel",
         "echo \"module(name = \\\"sv-lang\\\", version = \\\"0.0.0\\\")\" >> MODULE.bazel",
-        "touch BUILD"
+        "echo \"package(default_visibility = [\\\"//visibility:public\\\"])\" > BUILD",
+        "echo \"alias(name = \\\"libsvlang\\\", actual = \\\"//src:slang\\\")\" >> BUILD"
     ],
 )
