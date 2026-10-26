@@ -335,6 +335,8 @@ archive_override(
         "echo \"\" > MODULE.bazel",
         "echo \"module(name = \\\"sv-lang\\\", version = \\\"0.0.0\\\")\" >> MODULE.bazel",
         "echo \"package(default_visibility = [\\\"//visibility:public\\\"])\" > BUILD",
-        "echo \"alias(name = \\\"libsvlang\\\", actual = \\\"//src:slang\\\")\" >> BUILD"
+        "echo \"alias(name = \\\"libsvlang\\\", actual = \\\"//src:slang\\\")\" >> BUILD",
+        "mkdir -p src",
+        "echo \"package(default_visibility = [\\\"//visibility:public\\\"])\" > src/BUILD"
     ],
 )
