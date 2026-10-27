@@ -4,20 +4,6 @@
 # Download base image ubuntu 22.04
 FROM ubuntu:22.04
 
-RUN git clone https://github.com/MikePopoloski/slang /tmp/slang_git && \
-    cd /tmp/slang_git && \
-    git checkout f04e81565793c768b747a8fd058f3e7aeceee1b5
-
-RUN git clone https://github.com/bazelbuild/bazel-central-registry /tmp/bcr_git
-
-RUN mkdir -p /opt/sv-lang/slang-f04e81565793c768b747a8fd058f3e7aeceee1b5
-
-RUN cp -r /tmp/bcr_git/modules/sv-lang/10.0.1-20260316-f04e8156/overlay/* /opt/sv-lang/
-
-RUN cp -r /tmp/slang_git/* /opt/sv-lang/slang-f04e81565793c768b747a8fd058f3e7aeceee1b5/
-
-RUN rm -rf /tmp/slang_git /tmp/bcr_git
-
 ARG SKIP_TESTS=0
 
 # LABEL about the custom image
@@ -44,12 +30,27 @@ RUN apt-get -y install python3-dev python-is-python3 libtinfo6 build-essential l
 # Install development tools
 RUN apt-get install -y git vim lldb
 
+
 RUN useradd -m xls-developer
 USER xls-developer
 
 # Map the project contents in.
 ADD --chown=xls-developer . /home/xls-developer/xls/
 WORKDIR /home/xls-developer/xls/
+
+RUN git clone https://github.com/MikePopoloski/slang /home/xls-developer/slang_git && \
+    cd /home/xls-developer/slang_git && \
+    git checkout f04e81565793c768b747a8fd058f3e7aeceee1b5
+
+RUN git clone https://github.com/bazelbuild/bazel-central-registry /home/xls-developer/bcr_git
+
+RUN mkdir -p /home/xls-developer/sv-lang/slang-f04e81565793c768b747a8fd058f3e7aeceee1b5
+
+RUN cp -r /home/xls-developer/bcr_git/modules/sv-lang/10.0.1-20260316-f04e8156/overlay/* /home/xls-developer/sv-lang/
+
+RUN cp -r /home/xls-developer/slang_git/* /home/xls-developer/sv-lang/slang-f04e81565793c768b747a8fd058f3e7aeceee1b5/
+
+RUN rm -rf /home/xls-developer/slang_git /home/xls-developer/bcr_git
 
 # --- NEW CACHE AND TARGET CONFIGURATION ---
 ARG BUILD_TARGET="//xls/common/..."
