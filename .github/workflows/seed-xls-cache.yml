@@ -60,12 +60,14 @@ jobs:
 
       # 4. Extract the newly produced cache artifacts out of the container
       - name: Extract Cache Files from Container
-        if: success() || cancelled() # Run even if stopped early by user before 6h
+        if: success() || cancelled()
         run: |
-          id=$(docker create xls-phase-builder:latest)
-          docker cp $id:/home/xls-developer/bazel_disk_cache/. .bazel_disk_cache/
+          # Pass 'true' as a dummy command so the scratch layout can be initialized
+          id=$(docker create xls-phase-builder:latest true)          
+          # Copy from the scratch stage's root location
+          docker cp $id:/bazel_disk_cache/. .bazel_disk_cache/
           docker rm -v $id
-
+          
       # 5. Overwrite the persistent GitHub Actions cache state with a rolling key
       - name: Save Updated Bazel Cache
         uses: actions/cache/save@v4
