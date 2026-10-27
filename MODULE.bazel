@@ -229,7 +229,7 @@ git_override(
 git_override(
     module_name = "sv-lang",
     remote = "https://github.com/MikePopoloski/slang",
-    tag = "v10.0",
+    commit = "f04e81565793c768b747a8fd058f3e7aeceee1b5",
 )
 
 # TODO: mikex - Remove this override once fixed upstream in https://registry.bazel.build/modules/sv-lang.
