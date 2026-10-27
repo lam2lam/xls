@@ -228,7 +228,7 @@ git_override(
 
 local_path_override(
     module_name = "sv-lang",
-    path = "/opt/sv-lang",
+    path = "/home/xls-developer/sv-lang",
 )
 
 #archive_override(
