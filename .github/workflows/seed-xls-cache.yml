@@ -12,12 +12,11 @@ on:
           - '1_common'
           - '2_ir_and_dslx'
           - '3_jit_and_passes'
-          - '4_everything'
+          - '4_remaining'
 
 jobs:
   incremental-build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -28,15 +27,20 @@ jobs:
         run: |
           if [ "${{ github.event.inputs.phase }}" = "1_common" ]; then
             echo "target=//xls/common/..." >> $GITHUB_OUTPUT
+            echo "next_phase=2_ir_and_dslx" >> $GITHUB_OUTPUT
           elif [ "${{ github.event.inputs.phase }}" = "2_ir_and_dslx" ]; then
             echo "target=//xls/ir/... //xls/dslx/..." >> $GITHUB_OUTPUT
+            echo "next_phase=3_jit_and_passes" >> $GITHUB_OUTPUT
           elif [ "${{ github.event.inputs.phase }}" = "3_jit_and_passes" ]; then
             echo "target=//xls/jit/... //xls/passes/... //xls/scheduling/..." >> $GITHUB_OUTPUT
+            echo "next_phase=4_remaining" >> $GITHUB_OUTPUT
           else
-            echo "target=//xls/... -//xls/contrib/... -//xls/dev_tools/..." >> $GITHUB_OUTPUT
+            # Only compile what's left, skipping the heavy lifters already cached
+            echo "target=//xls/... -//xls/common/... -//xls/ir/... -//xls/dslx/... -//xls/jit/... -//xls/passes/... -//xls/scheduling/... -//xls/contrib/... -//xls/dev_tools/..." >> $GITHUB_OUTPUT
+            echo "next_phase=none" >> $GITHUB_OUTPUT
           fi
 
-      # 2. Pull down existing cache fragments from prior phases
+      # 2. Pull down existing cache fragments from ANY prior run
       - name: Restore Bazel Cache
         uses: actions/cache/restore@v4
         with:
@@ -45,28 +49,40 @@ jobs:
           restore-keys: |
             bazel-split-cache-${{ runner.os }}-
 
-      # 3. Build the Docker container using our local extracted cache folder folder
+      # 3. Build the Docker container using our local extracted cache folder
       - name: Compile Selected Phase
         run: |
           mkdir -p .bazel_disk_cache
-          
-          # Spin up the image build, mounting the cache folder inside the container
           docker build . \
             -f Dockerfile-ubuntu-22.04 \
             --build-arg BUILD_TARGET="${{ steps.targets.outputs.target }}" \
             -t xls-phase-builder:latest
 
-      # 4. Extract the newly produced cache artifacts out of the container so GitHub can store them
+      # 4. Extract the newly produced cache artifacts out of the container
       - name: Extract Cache Files from Container
+        if: success() || cancelled() # Run even if stopped early by user before 6h
         run: |
-          # Spin up a temporary dead container layout to allow copying files out
           id=$(docker create xls-phase-builder:latest)
           docker cp $id:/home/xls-developer/bazel_disk_cache/. .bazel_disk_cache/
           docker rm -v $id
 
-      # 5. Overwrite the persistent GitHub Actions cache state with the newly compiled files
+      # 5. Overwrite the persistent GitHub Actions cache state with a rolling key
       - name: Save Updated Bazel Cache
         uses: actions/cache/save@v4
+        if: success() || cancelled()
         with:
           path: .bazel_disk_cache
-          key: bazel-split-cache-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempts }}
+          # Using run_id + run_attempt ensures a unique save key every single time
+          key: bazel-split-cache-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      # 6. Chain to the next phase automatically if successful
+      - name: Trigger Next Phase
+        if: success() && steps.targets.outputs.next_phase != 'none'
+        run: |
+          curl -L \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://github.com{{ github.repository }}/actions/workflows/YOUR_WORKFLOW_FILE_NAME.yml/dispatches \
+            -d '{"ref":"${{ github.ref_name }}","inputs":{"phase":"${{ steps.targets.outputs.next_phase }}"}}'
