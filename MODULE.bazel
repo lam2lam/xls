@@ -226,11 +226,13 @@ git_override(
     remote = "https://github.com/The-OpenROAD-Project/qt_bazel_prebuilts",
 )
 
-git_override(
+archive_override(
     module_name = "sv-lang",
-    remote = "https://github.com/MikePopoloski/slang",
-    commit = "f04e81565793c768b747a8fd058f3e7aeceee1b5",
+    urls = ["https://github.com/MikePopoloski/slang/archive/f04e81565793c768b747a8fd058f3e7aeceee1b5.tar.gz"],
+    integrity = "sha256-Pj8AVITB12EZCg7lD3wYZpuHgcexydYPQsOUh77CWqg=",
+    strip_prefix = "slang-f04e81565793c768b747a8fd058f3e7aeceee1b5",
 )
+
 
 # TODO: mikex - Remove this override once fixed upstream in https://registry.bazel.build/modules/sv-lang.
 # rules_pycross is a transitive dependency of OpenROAD (via sv-lang).
