@@ -450,8 +450,8 @@ TEST(AstClonerTest, SimpleParametricProc) {
   constexpr std::string_view kProgram = R"(
 proc p<N: u32> {
     config() { () }
-    init { () }
-    next(state: ()) { () }
+    init { uN[N]:0 }
+    next(state: uN[N]) { state }
 }
 )";
   constexpr std::string_view kExpected = R"(proc p<N: u32> {
@@ -459,10 +459,10 @@ proc p<N: u32> {
         ()
     }
     init {
-        ()
+        uN[N]:0
     }
-    next(state: ()) {
-        ()
+    next(state: uN[N]) {
+        state
     }
 })";
 
@@ -472,6 +472,7 @@ proc p<N: u32> {
   XLS_ASSERT_OK_AND_ASSIGN(std::unique_ptr<Module> clone,
                            CloneModule(*module.get()));
   EXPECT_EQ(kExpected, clone->ToString());
+  XLS_ASSERT_OK(VerifyClone(module.get(), clone.get(), file_table));
 }
 
 TEST(AstClonerTest, ParametricProcSpawn) {
@@ -524,6 +525,7 @@ proc parent {
   XLS_ASSERT_OK_AND_ASSIGN(std::unique_ptr<Module> clone,
                            CloneModule(*module.get()));
   EXPECT_EQ(kExpected, clone->ToString());
+  XLS_ASSERT_OK(VerifyClone(module.get(), clone.get(), file_table));
 }
 
 TEST(AstClonerTest, ProcWithConstant) {
@@ -556,6 +558,42 @@ proc p {
   XLS_ASSERT_OK_AND_ASSIGN(std::unique_ptr<Module> clone,
                            CloneModule(*module.get()));
   EXPECT_EQ(kExpected, clone->ToString());
+  XLS_ASSERT_OK(VerifyClone(module.get(), clone.get(), file_table));
+}
+
+TEST(AstClonerTest, ProcUsingConstantAndTypeAlias) {
+  constexpr std::string_view kProgram = R"(
+proc p {
+    const C = u32:2;
+    type T = u32;
+    ch: chan<T>[C] in;
+    config(ch: chan<T>[C] in) { (ch,) }
+    init { C }
+    next(state: T) { state + C }
+}
+)";
+  constexpr std::string_view kExpected = R"(proc p {
+    const C = u32:2;
+    type T = u32;
+    ch: chan<T>[C] in;
+    config(ch: chan<T>[C] in) {
+        (ch,)
+    }
+    init {
+        C
+    }
+    next(state: T) {
+        state + C
+    }
+})";
+
+  FileTable file_table;
+  XLS_ASSERT_OK_AND_ASSIGN(auto module, ParseModule(kProgram, "fake_path.x",
+                                                    "the_module", file_table));
+  XLS_ASSERT_OK_AND_ASSIGN(std::unique_ptr<Module> clone,
+                           CloneModule(*module.get()));
+  EXPECT_EQ(kExpected, clone->ToString());
+  XLS_ASSERT_OK(VerifyClone(module.get(), clone.get(), file_table));
 }
 
 TEST(AstClonerTest, StructDefAndImpl) {
@@ -897,6 +935,20 @@ TEST(AstClonerTest, Procs) {
   XLS_ASSERT_OK_AND_ASSIGN(AstNode * clone, CloneAst(p));
   EXPECT_EQ(kProgram, clone->ToString());
   XLS_ASSERT_OK(VerifyClone(p, clone, *module->file_table()));
+
+  XLS_ASSERT_OK_AND_ASSIGN(std::unique_ptr<Module> module_clone,
+                           CloneModule(*module));
+  EXPECT_EQ(kProgram, module_clone->ToString());
+  XLS_ASSERT_OK(
+      VerifyClone(module.get(), module_clone.get(), *module->file_table()));
+  XLS_ASSERT_OK_AND_ASSIGN(Proc * proc_clone,
+                           module_clone->GetMemberOrError<Proc>("MyProc"));
+  for (ProcMember* member : proc_clone->members()) {
+    EXPECT_EQ(member->name_def()->definer(), member);
+  }
+  for (Param* param : proc_clone->next().params()) {
+    EXPECT_EQ(param->name_def()->definer(), param);
+  }
 }
 
 TEST(AstClonerTest, TestFunctions) {
@@ -942,6 +994,11 @@ proc my_test_proc {
   XLS_ASSERT_OK_AND_ASSIGN(AstNode * clone, CloneAst(tp));
   EXPECT_EQ(kProgram, clone->ToString());
   XLS_ASSERT_OK(VerifyClone(tp, clone, file_table));
+
+  XLS_ASSERT_OK_AND_ASSIGN(std::unique_ptr<Module> module_clone,
+                           CloneModule(*module));
+  EXPECT_EQ(kProgram, module_clone->ToString());
+  XLS_ASSERT_OK(VerifyClone(module.get(), module_clone.get(), file_table));
 }
 
 TEST(AstClonerTest, Chan) {
@@ -2719,6 +2776,26 @@ fn unwrap_or_sum(x: Option) -> u32 {
                            CloneModule(*module.get()));
   EXPECT_EQ(kExpected, clone->ToString());
   XLS_ASSERT_OK(VerifyClone(module.get(), clone.get(), file_table));
+
+  XLS_ASSERT_OK_AND_ASSIGN(SumDef * original,
+                           module->GetMemberOrError<SumDef>("Option"));
+  XLS_ASSERT_OK_AND_ASSIGN(SumDef * copied,
+                           clone->GetMemberOrError<SumDef>("Option"));
+  SumVariant* some = *copied->GetVariant("Some");
+  TupleTypeAnnotation* payload = some->tuple_payload();
+  EXPECT_NE(payload, (*original->GetVariant("Some"))->tuple_payload());
+  EXPECT_EQ(payload->owner(), clone.get());
+  EXPECT_EQ(payload->parent(), some);
+  ASSERT_EQ(payload->size(), 1);
+  EXPECT_EQ(payload->members()[0]->parent(), payload);
+
+  SumVariant* point = *copied->GetVariant("Point");
+  ASSERT_EQ(point->named_fields().GetMemberIndex("y"), 1);
+  StructMemberNode* y = *point->named_fields().GetMemberByName("y");
+  EXPECT_EQ(y, point->struct_members()[1]);
+  EXPECT_NE(y, (*original->GetVariant("Point"))->struct_members()[1]);
+  EXPECT_EQ(y->owner(), clone.get());
+  EXPECT_EQ(y->parent(), point);
 }
 
 TEST(AstClonerTest, ParametricFunctionClonesParamTypeDefiner) {
