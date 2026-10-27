@@ -60,4 +60,4 @@ RUN mkdir -p /home/xls-developer/bazel_disk_cache && \
 
 # Test everything (opt), exclude contrib (including xlscc) for now due to
 # increased build time when we add Clang.
-RUN if [ "$SKIP_TESTS" != "1" ]; then bazel fetch --config=ci -c opt -- ${BUILD_TARGET}; else echo "Skipping tests because SKIP_TESTS is 1"; fi
+RUN if [ "$SKIP_TESTS" != "1" ]; then bazel build --config=ci -c opt -- ${BUILD_TARGET}; else echo "Skipping tests because SKIP_TESTS is 1"; fi
