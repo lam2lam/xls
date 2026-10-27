@@ -226,25 +226,29 @@ git_override(
     remote = "https://github.com/The-OpenROAD-Project/qt_bazel_prebuilts",
 )
 
-archive_override(
+local_path_override(
     module_name = "sv-lang",
-    urls = ["https://github.com/MikePopoloski/slang/archive/f04e81565793c768b747a8fd058f3e7aeceee1b5.tar.gz"],
-    integrity = "sha256-Pj8AVITB12EZCg7lD3wYZpuHgcexydYPQsOUh77CWqg=",
-    overlay = {
-        "MODULE.bazel": "@bcr_remote_cache//modules/sv-lang/10.0.1-20260316-f04e8156/overlay:MODULE.bazel",
-        "BUILD.bazel": "@bcr_remote_cache//modules/sv-lang/10.0.1-20260316-f04e8156/overlay:BUILD.bazel",
-        "pyslang/BUILD.bazel": "@bcr_remote_cache//modules/sv-lang/10.0.1-20260316-f04e8156/overlay/pyslang:BUILD.bazel",
-        "pyslang/__init.py__": "@bcr_remote_cache//modules/sv-lang/10.0.1-20260316-f04e8156/overlay/pyslang:__init.py__",
-        "private/slang/export_headers/BUILD.bazel": "@bcr_remote_cache//modules/sv-lang/10.0.1-20260316-f04e8156/overlay/private/slang/export_headers:BUILD.bazel",
-        "private/slang/version_info/BUILD.bazel": "@bcr_remote_cache//modules/sv-lang/10.0.1-20260316-f04e8156/overlay/private/slang/version_info:BUILD.bazel",
-        "private/slang/version_info/VersionInfo.cpp.in": "@bcr_remote_cache//modules/sv-lang/10.0.1-20260316-f04e8156/overlay/private/slang/version_info:VersionInfo.cpp.in",
-        "private/tests/BUILD.bazel": "@bcr_remote_cache//modules/sv-lang/10.0.1-20260316-f04e8156/overlay/private/tests:BUILD.bazel",
-        "private/tests/pyslang/BUILD.bazel": "@bcr_remote_cache//modules/sv-lang/10.0.1-20260316-f04e8156/overlay/private/tests/pyslang:BUILD.bazel",
-        "private/tests/pyslang/test.py": "@bcr_remote_cache//modules/sv-lang/10.0.1-20260316-f04e8156/overlay/private/tests/pyslang:test.py",
-        "private/tests/pyslang/test_module.sv": "@bcr_remote_cache//modules/sv-lang/10.0.1-20260316-f04e8156/overlay/private/tests/pyslang:test_module.sv",
-    },
+    path = "/opt/sv-lang",
 )
 
+#archive_override(
+#    module_name = "sv-lang",
+#    urls = ["https://github.com/MikePopoloski/slang/archive/f04e81565793c768b747a8fd058f3e7aeceee1b5.tar.gz"],
+#    integrity = "sha256-Pj8AVITB12EZCg7lD3wYZpuHgcexydYPQsOUh77CWqg=",
+#    overlay = {
+#        "MODULE.bazel": "@bcr_remote_cache//modules/sv-lang/10.0.1-20260316-f04e8156/overlay:MODULE.bazel",
+#        "BUILD.bazel": "@bcr_remote_cache//modules/sv-lang/10.0.1-20260316-f04e8156/overlay:BUILD.bazel",
+#        "pyslang/BUILD.bazel": "@bcr_remote_cache//modules/sv-lang/10.0.1-20260316-f04e8156/overlay/pyslang:BUILD.bazel",
+#        "pyslang/__init.py__": "@bcr_remote_cache//modules/sv-lang/10.0.1-20260316-f04e8156/overlay/pyslang:__init.py__",
+#        "private/slang/export_headers/BUILD.bazel": "@bcr_remote_cache//modules/sv-lang/10.0.1-20260316-f04e8156/overlay/private/slang/export_headers:BUILD.bazel",
+#        "private/slang/version_info/BUILD.bazel": "@bcr_remote_cache//modules/sv-lang/10.0.1-20260316-f04e8156/overlay/private/slang/version_info:BUILD.bazel",
+#        "private/slang/version_info/VersionInfo.cpp.in": "@bcr_remote_cache//modules/sv-lang/10.0.1-20260316-f04e8156/overlay/private/slang/version_info:VersionInfo.cpp.in",
+#        "private/tests/BUILD.bazel": "@bcr_remote_cache//modules/sv-lang/10.0.1-20260316-f04e8156/overlay/private/tests:BUILD.bazel",
+#        "private/tests/pyslang/BUILD.bazel": "@bcr_remote_cache//modules/sv-lang/10.0.1-20260316-f04e8156/overlay/private/tests/pyslang:BUILD.bazel",
+#        "private/tests/pyslang/test.py": "@bcr_remote_cache//modules/sv-lang/10.0.1-20260316-f04e8156/overlay/private/tests/pyslang:test.py",
+#        "private/tests/pyslang/test_module.sv": "@bcr_remote_cache//modules/sv-lang/10.0.1-20260316-f04e8156/overlay/private/tests/pyslang:test_module.sv",
+#    },
+#)
 
 # TODO: mikex - Remove this override once fixed upstream in https://registry.bazel.build/modules/sv-lang.
 # rules_pycross is a transitive dependency of OpenROAD (via sv-lang).
