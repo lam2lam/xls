@@ -47,4 +47,4 @@ ARG SKIP_TESTS=0
 COPY --chown=xls-developer . /home/xls-developer/xls/
 
 # C) Execute compilation targets using the filled cache
-RUN bazel mod fetch --all
+RUN bazel fetch --all
