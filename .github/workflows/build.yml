@@ -17,7 +17,7 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         context: .
-        file: ./Dockerfile-ubuntu-22.04  # 请替换为你实际的 Dockerfile 文件名
+        file: ./dockerfile2  # 请替换为你实际的 Dockerfile 文件名
         build-args: |
           BUILD_TARGET=//xls/...
         tags: xls-builder:latest
