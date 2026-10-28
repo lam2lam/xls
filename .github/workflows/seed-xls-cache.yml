@@ -86,7 +86,7 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            https://github.com{{ github.repository }}/actions/workflows/seed-xls-cache.yml/dispatches \
+            https://api.github.com/${{ github.repository }}/actions/workflows/seed-xls-cache.yml/dispatches \
             -d '{"ref":"${{ github.ref_name }}","inputs":{"phase":"${{ steps.targets.outputs.next_phase }}"}}'
 
       # 7. Only when the final phase finishes successfully, bundle and upload the complete image
