@@ -43,18 +43,8 @@ FROM base AS builder
 ARG BUILD_TARGET="//xls/common/..."
 ARG SKIP_TESTS=0
 
-# A) Inject the local cache folders downloaded by GitHub actions into the image layout
-COPY --chown=xls-developer .bazel_disk_cache/ /home/xls-developer/bazel_disk_cache/
-
 # B) Map the updated repository source changes in 
 COPY --chown=xls-developer . /home/xls-developer/xls/
 
 # C) Execute compilation targets using the filled cache
 RUN bazel mod fetch --all
-
-# =====================================================================
-# STAGE 3: Minimal cache extraction layout
-# =====================================================================
-FROM scratch AS cache-extractor
-# Copy only the compiled cache directory out of the heavy builder stage
-COPY --from=builder /home/xls-developer/bazel_disk_cache/ /bazel_disk_cache/
