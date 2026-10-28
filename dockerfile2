@@ -1,0 +1,60 @@
+# =====================================================================
+# STAGE 1: Setup base environment and system dependencies
+# =====================================================================
+FROM ubuntu:22.04 AS base
+
+ARG SKIP_TESTS=0
+LABEL version="0.1"
+LABEL description="Docker Image for Building/Testing XLS on Ubuntu 22.04 x86-64"
+
+RUN apt-get update -y && \
+    apt-get install -y curl python3 python3-dev python-is-python3 libtinfo6 build-essential libxml2-dev liblapack-dev libblas-dev gfortran zip default-jdk git vim lldb
+
+# Install bazelisk from latest release
+RUN curl -O -L $(curl -L \
+  -H "Accept: application/vnd.github+json" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  https://api.github.com/repos/bazelbuild/bazelisk/releases | \
+  python3 -c 'import json; import sys; print(filter(lambda url: "linux-amd64" in url, (a["browser_download_url"] for a in json.load(sys.stdin)[0]["assets"])).__next__())') && \
+  chmod +x bazelisk-linux-amd64 && mv bazelisk-linux-amd64 /usr/bin/bazel
+
+RUN useradd -m xls-developer
+USER xls-developer
+WORKDIR /home/xls-developer/xls/
+
+# Pre-fetch and assemble slang external modules to speed up layers
+RUN git clone https://github.com/MikePopoloski/slang /home/xls-developer/slang_git && \
+    cd /home/xls-developer/slang_git && git checkout f04e81565793c768b747a8fd058f3e7aeceee1b5
+RUN git clone https://github.com/bazelbuild/bazel-central-registry /home/xls-developer/bcr_git
+RUN mkdir -p /home/xls-developer/sv-lang/slang-f04e81565793c768b747a8fd058f3e7aeceee1b5 && \
+    cp -r /home/xls-developer/bcr_git/modules/sv-lang/10.0.1-20260316-f04e8156/overlay/* /home/xls-developer/sv-lang/ && \
+    cp -r /home/xls-developer/slang_git/* /home/xls-developer/sv-lang/slang-f04e81565793c768b747a8fd058f3e7aeceee1b5/ && \
+    rm -rf /home/xls-developer/slang_git /home/xls-developer/bcr_git
+
+# Configure global bazelrc disk cache path
+RUN mkdir -p /home/xls-developer/bazel_disk_cache && \
+    echo "build --disk_cache=/home/xls-developer/bazel_disk_cache" >> /home/xls-developer/.bazelrc
+
+# =====================================================================
+# STAGE 2: Build execution environment
+# =====================================================================
+FROM base AS builder
+
+ARG BUILD_TARGET="//xls/common/..."
+ARG SKIP_TESTS=0
+
+# A) Inject the local cache folders downloaded by GitHub actions into the image layout
+COPY --chown=xls-developer .bazel_disk_cache/ /home/xls-developer/bazel_disk_cache/
+
+# B) Map the updated repository source changes in 
+COPY --chown=xls-developer . /home/xls-developer/xls/
+
+# C) Execute compilation targets using the filled cache
+RUN bazel mod fetch --all
+
+# =====================================================================
+# STAGE 3: Minimal cache extraction layout
+# =====================================================================
+FROM scratch AS cache-extractor
+# Copy only the compiled cache directory out of the heavy builder stage
+COPY --from=builder /home/xls-developer/bazel_disk_cache/ /bazel_disk_cache/
